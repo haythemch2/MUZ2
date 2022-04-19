@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 
-
 const ReservationSchema = new mongoose.Schema({
   name: {
     type: String,
