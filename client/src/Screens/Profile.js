@@ -8,11 +8,11 @@ import { getUserPosts } from "../js/action/post";
 import ReactAudioPlayer from "react-audio-player";
 import Player from "../components/Player";
 import ImageGallery from "react-image-gallery";
-import { Upload, Modal } from "antd";
+import { Upload, Modal, Table, Space } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import axios from "axios";
 import ReactPlayer from "react-player";
-
+import moment from "moment";
 let URI = process.env.REACT_APP_API;
 
 function makeId(length = 5) {
@@ -38,6 +38,7 @@ const Profile = () => {
   const myPosts = useSelector((state) => state.postReducer.posts);
   const loadPosts = useSelector((state) => state.postReducer.loadPosts);
 
+  const [reservs, setReservs] = useState([]);
   const [play, setplay] = useState(false);
 
   const [selectedAudio, setSelectedAudio] = useState(
@@ -82,7 +83,12 @@ const Profile = () => {
         setFileIdsList(Ids);
       })
       .catch((err) => console.log(err));
-
+    if (current?.role == "maison" || "studio") {
+      axios.get(URI + "/reservation/getByReservedFor", options).then((res) => {
+        console.log(res.data);
+        setReservs([...res.data]);
+      });
+    }
     axios
       .get(URI + "/video/get?id=" + current?._id, options)
       .then((res) => {
@@ -158,32 +164,6 @@ const Profile = () => {
   };
   //** */
   const [myImages, setmyImages] = useState([]);
-  const images = [
-    {
-      original:
-        "https://images.unsplash.com/photo-1516223725307-6f76b9ec8742?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-      thumbnail:
-        "https://images.unsplash.com/photo-1516223725307-6f76b9ec8742?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-    },
-    {
-      original:
-        "https://images.unsplash.com/photo-1485120750507-a3bf477acd63?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-      thumbnail:
-        "https://images.unsplash.com/photo-1485120750507-a3bf477acd63?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    },
-    {
-      original:
-        "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-      thumbnail:
-        "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    },
-    {
-      original:
-        "https://images.unsplash.com/photo-1525926477800-7a3b10316ac6?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-      thumbnail:
-        "https://images.unsplash.com/photo-1525926477800-7a3b10316ac6?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-    },
-  ];
 
   const handlePlay = (src) => {
     setplay(true);
@@ -396,6 +376,98 @@ const Profile = () => {
       <div style={{ marginTop: 8 }}>Upload</div>
     </div>
   );
+
+  //////////////////////////RESERVATION////////////////////////////
+
+  const handleAcceptReserv = (reservationId) => {
+    const options = {
+      headers: {
+        "Content-Type": "application/json",
+        authorization: localStorage.getItem("token"),
+      },
+    };
+    axios
+      .post(
+        URI + "/reservation/edit",
+        { reservationId, state: "ACCEPTED" },
+        options
+      )
+      .then((res) => {
+        window.location.reload();
+      });
+  };
+  const handleDeclineReserv = (reservationId) => {
+    const options = {
+      headers: {
+        "Content-Type": "application/json",
+        authorization: localStorage.getItem("token"),
+      },
+    };
+    axios
+      .post(
+        URI + "/reservation/edit",
+        { reservationId, state: "REJECTED" },
+        options
+      )
+      .then((res) => {
+        window.location.reload();
+      });
+  };
+  const columns = [
+    {
+      title: "Date",
+      dataIndex: "date",
+      key: "date",
+      render: (text, record) => (
+        <span>{moment(text).format("DD/MM/YYYY HH:mm")}</span>
+      ),
+    },
+    {
+      title: "Prenom",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Nom",
+      dataIndex: "lastName",
+      key: "prenom",
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Telephone",
+      dataIndex: "tel",
+      key: "telephone",
+    },
+
+    {
+      title: "#",
+      dataIndex: "actions",
+      key: "actions",
+      render: (text, record) =>
+        record.state == "PENDING" ? (
+          <Space size="middle">
+            <a
+              style={{ color: "green" }}
+              onClick={() => handleAcceptReserv(record._id)}
+            >
+              Accepter
+            </a>
+            <a
+              style={{ color: "red" }}
+              onClick={() => handleDeclineReserv(record._id)}
+            >
+              Refuser
+            </a>
+          </Space>
+        ) : (
+          <a>{record.state}</a>
+        ),
+    },
+  ];
   return (
     <div id="main" className="layout-row flex">
       {/* ############ Content START*/}
@@ -610,6 +682,21 @@ const Profile = () => {
                           Youtube
                         </a>
                       </li>
+                      {current?.role == "maison" ||
+                        ("studio" && (
+                          <li
+                            className="nav-item"
+                            onFocus={() => setDummy("5")}
+                          >
+                            <a
+                              className="nav-link"
+                              href="#reservation"
+                              data-toggle="tab"
+                            >
+                              Reservation
+                            </a>
+                          </li>
+                        ))}
                       {/* <li className="nav-item">
                         <a
                           className="nav-link"
@@ -762,13 +849,7 @@ const Profile = () => {
                     </div>
                     <div className="tab-pane fade" id="albums">
                       <div className="row list mb-4">
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={402107013}
-                          data-category="Dance"
-                          data-tag="All"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview118/v4/03/e5/25/03e52558-25b4-e41a-8b0a-c5ee14cf51de/mzaf_7464768196891763269.plus.aac.p.m4a"
-                        >
+                        {/* <div className="col-4 col-sm-3">
                           <div className="list-item list-hover r mb-4">
                             <div className="media">
                               <a
@@ -815,388 +896,15 @@ const Profile = () => {
                               </div>
                             </div>
                           </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={443321905}
-                          data-category="Rap"
-                          data-tag="USA"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview118/v4/aa/41/38/aa413803-5b2d-a5de-381f-351d5ebcc3cb/mzaf_2919139327828656331.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#443321905"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c16.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#443321905"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  ZEZE
-                                </a>
-                                <a
-                                  href="artist.detail.html#443321905"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  Kodak Black Feat. Offset &amp; Travis Scott
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={434628736}
-                          data-category="Pop"
-                          data-tag="USA"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview128/v4/1d/44/74/1d447462-1811-5cfd-90f7-13edea1193d9/mzaf_5901924055590298818.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#434628736"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c9.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#434628736"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Thunderclouds
-                                </a>
-                                <a
-                                  href="artist.detail.html#434628736"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  LSD Feat. Sia &amp; Diplo &amp; Labrinth
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={428550515}
-                          data-category="RAP"
-                          data-tag="Australia"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview115/v4/4c/58/f4/4c58f4f0-ec84-c5e3-15ed-39beb0933e38/mzaf_3604425775820894823.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#428550515"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c3.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#428550515"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Be Alright
-                                </a>
-                                <a
-                                  href="artist.detail.html#428550515"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  Dean Lewis
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={439309038}
-                          data-category="R&B"
-                          data-tag="USA"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview128/v4/26/d1/f1/26d1f10f-723e-66c9-4355-9575f40bc85b/mzaf_5907372873406991062.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#439309038"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c34.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#439309038"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Better
-                                </a>
-                                <a
-                                  href="artist.detail.html#439309038"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  Khalid
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={374705210}
-                          data-category="Rap"
-                          data-tag="USA"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview118/v4/dc/c4/0b/dcc40b4d-283b-e9a2-6209-ca988087cc0e/mzaf_8137717147287964110.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#374705210"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c22.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#374705210"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Mo Bamba
-                                </a>
-                                <a
-                                  href="artist.detail.html#374705210"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  Sheck Wes
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={442009655}
-                          data-category="Pop"
-                          data-tag="England"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview128/v4/07/7e/24/077e2447-0d02-1c40-729b-a4a87e7ecd51/mzaf_3261492558713394996.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#442009655"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c19.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#442009655"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Woman Like Me
-                                </a>
-                                <a
-                                  href="artist.detail.html#442009655"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  Little Mix Feat. Nicki Minaj
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className="col-4 col-sm-3"
-                          data-id={438654695}
-                          data-category="Dance"
-                          data-tag="France"
-                          data-source="https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/AudioPreview128/v4/c1/60/68/c1606821-459e-0575-ad3b-6b291f2dbf66/mzaf_3521330005736623852.plus.aac.p.m4a"
-                        >
-                          <div className="list-item list-hover r mb-4">
-                            <div className="media">
-                              <a
-                                href="item.detail.html#438654695"
-                                className="ajax media-content"
-                                style={{
-                                  backgroundImage: "url(../assets/img/c23.jpg)",
-                                }}
-                              ></a>
-                              <div className="media-action media-action-overlay">
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row"
-                                  data-toggle-class=""
-                                >
-                                  <i
-                                    data-feather="heart"
-                                    className="active-fill"
-                                  />
-                                </button>
-                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
-                                <button
-                                  className="btn btn-icon no-bg no-shadow hide-row btn-more"
-                                  data-toggle="dropdown"
-                                >
-                                  <Icon.MoreHorizontal />{" "}
-                                </button>
-                                <div className="dropdown-menu dropdown-menu-right" />
-                              </div>
-                            </div>
-                            <div className="list-content text-center">
-                              <div className="list-body">
-                                <a
-                                  href="item.detail.html#438654695"
-                                  className="list-title title ajax h-1x"
-                                >
-                                  Say My Name
-                                </a>
-                                <a
-                                  href="artist.detail.html#438654695"
-                                  className="list-subtitle d-block text-muted h-1x subtitle ajax"
-                                >
-                                  David Guetta &amp; Bebe Rexha &amp; J Balvin
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
-
+                    <div className="tab-pane fade" id="reservation">
+                      {/* <div className="row list mb-4">
+                        
+                      </div> */}
+                      <Table columns={columns} dataSource={reservs} />
+                    </div>
                     <div className="tab-pane fade" id="youtube">
                       <div className="container">
                         <div

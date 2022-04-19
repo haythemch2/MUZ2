@@ -9,6 +9,7 @@ require("./models/post");
 require("./models/client");
 require("./models/image");
 require("./models/video");
+require("./models/reservation");
 
 app.use(express.json());
 app.use(
@@ -21,6 +22,7 @@ app.use(require("./routes/post"));
 app.use(require("./routes/user"));
 app.use("/image", require("./routes/image"));
 app.use("/video", require("./routes/video"));
+app.use("/reservation", require("./routes/reservation"));
 connectDB();
 
 const PORT = process.env.PORT;

@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { useLocation, useParams } from "react-router";
 import { getUsers } from "../js/action/user";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
+import { Space, Table, Modal, DatePicker } from "antd";
+import axios from "axios";
+let URI = process.env.REACT_APP_API;
 
 const Categories = () => {
   const navigate = useNavigate();
@@ -16,6 +19,15 @@ const Categories = () => {
   const gotUsers = useSelector((state) => state.userReducer.users);
 
   const position = [48.856614, 2.3522219];
+  const [reservation, setReservation] = useState({
+    name:"",
+    lastName:"",
+    email:"",
+    tel:"",
+    date:null,
+    message:""
+
+  })
 
   useEffect(() => {
     dispatch(getUsers());
@@ -51,6 +63,75 @@ const Categories = () => {
       : gotUsers;
   results = results.filter((u) => u.role == type || type == "all");
   console.log({ results });
+
+  const dataSource = [
+    {
+      key: "",
+      name: "",
+      address: "",
+    },
+  ];
+
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      render: (text) => <a>{text}</a>,
+    },
+
+    {
+      title: "Address",
+      dataIndex: "address",
+      key: "address",
+    },
+
+    {
+      title: "Action",
+      key: "action",
+      render: (text, record) => (
+        <Space size="middle">
+          <button
+            className="btn btn-rounded btn-sm gd-primary text-white d-none d-lg-block"
+            onClick={showModal}
+          >
+            Réserver
+          </button>
+        </Space>
+      ),
+    },
+  ];
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleOk = () => {
+    setIsModalVisible(false);
+    axios
+    .post(
+      URI +"/reservation",reservation
+    )
+    .then((res) => {
+      console.log("sayé");
+    })
+    .catch((err) => console.log(err));
+
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  function onChange(date, dateString) {
+    console.log(date, dateString);
+    
+    setReservation({...reservation,date:date})
+  }
+  function onOk(value) {
+    console.log('onOk: ', value);
+  }
   return (
     <div id="main" className="layout-row flex">
       <div id="content" className="flex">
@@ -188,36 +269,54 @@ const Categories = () => {
                   </div>
                 )}
                 {results && results.length > 0 ? (
-                  <div className="row row-md" style={{ marginTop: "5rem" }}>
-                    {results.map((user) => (
-                      <div className="col-4 col-md-3 col-lg-2 col-xl-1-8">
-                        <div className="list-item r list-hover">
-                          <div
-                            onClick={() => navigate("/user/" + user._id)}
-                            className="media"
-                          >
-                            <a
-                              className="ajax media-content"
-                              style={{
-                                backgroundImage: "url(" + user.url + ")",
-                              }}
-                            ></a>
-                            <div className="media-action media-action-overlay">
-                              <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
+                  <div className="" style={{ marginTop: "5rem" }}>
+                    <Modal
+                      title="Prendre un rendez vous"
+                      visible={isModalVisible}
+                      onOk={handleOk}
+                      onCancel={handleCancel}
+                    >
+                      <input className="reservation-input" type="text" placeholder="Nom" onChange={(e)=>setReservation({...reservation,name:e.target.value})} />
+                      <input className="reservation-input" type="text" placeholder="Prenom" onChange={(e)=>setReservation({...reservation,lastName:e.target.value})} />
+                      <input className="reservation-input" type="text" placeholder="Email" onChange={(e)=>setReservation({...reservation,email:e.target.value})} />
+                      <input className="reservation-input" type="text" placeholder="Telephone" onChange={(e)=>setReservation({...reservation,tel:e.target.value})} />
+                      <input className="reservation-input" type="text" placeholder="Message" onChange={(e)=>setReservation({...reservation,message:e.target.value})} />
+                      <DatePicker showTime onChange={onChange} onOk={onOk} />
 
-                              <div className="dropdown-menu dropdown-menu-right" />
+                    </Modal>
+                    {type == "maison" ? (
+                      <Table dataSource={results} columns={columns} />
+                    ) : (
+                      results.map((user) => (
+                        <div className="col-4 col-md-3 col-lg-2 col-xl-1-8">
+                          <div className="list-item r list-hover">
+                            <div
+                              onClick={() => navigate("/user/" + user._id)}
+                              className="media"
+                            >
+                              <a
+                                className="ajax media-content"
+                                style={{
+                                  backgroundImage: "url(" + user.url + ")",
+                                }}
+                              ></a>
+                              <div className="media-action media-action-overlay">
+                                <button className="btn btn-raised btn-icon btn-rounded bg--white btn-play" />
+
+                                <div className="dropdown-menu dropdown-menu-right" />
+                              </div>
                             </div>
-                          </div>
-                          <div className="list-content text-center">
-                            <div className="list-body">
-                              <a className="list-title title ajax h-1x">
-                                {user.name}
-                              </a>
+                            <div className="list-content text-center">
+                              <div className="list-body">
+                                <a className="list-title title ajax h-1x">
+                                  {user.name}
+                                </a>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 ) : (
                   <div className="no-result">
